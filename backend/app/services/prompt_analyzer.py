@@ -13,6 +13,7 @@ CATEGORY_KEYWORDS: dict[TaskType, tuple[str, ...]] = {
     TaskType.CODE_GENERATION: (
         "code", "coder", "programme", "fonction", "api", "backend", "frontend", "react",
         "python", "javascript", "typescript", "sql", "bug", "debug", "algorithme",
+        "application", "interface", "site web", "outil", "plateforme", "logiciel", "projet web",
     ),
     TaskType.WRITING: (
         "redige", "ecris", "article", "email", "newsletter", "post", "texte", "histoire",
@@ -33,6 +34,42 @@ CATEGORY_KEYWORDS: dict[TaskType, tuple[str, ...]] = {
     TaskType.LEARNING: (
         "explique", "apprendre", "cours", "tutoriel", "lecon", "quiz", "exercice",
         "pedagogique", "enseigne", "revision", "comprendre",
+    ),
+}
+
+CATEGORY_INTENT_PATTERNS: dict[TaskType, tuple[str, ...]] = {
+    TaskType.IMAGE_GENERATION: (
+        r"\b(?:cree|genere|fais|produis|imagine|concois)\w*\s+(?:moi\s+)?(?:une?|des?)\s+"
+        r"(?:image|photo|illustration|affiche|logo|visuel|portrait)s?\b",
+        r"\b(?:prompt|brief)\s+(?:pour|d')\s*(?:une?|des?)?\s*"
+        r"(?:image|photo|illustration|affiche|logo|visuel|portrait)s?\b",
+    ),
+    TaskType.CODE_GENERATION: (
+        r"\b(?:developpe|cree|construis|code|implemente|concois)\w*\b.{0,80}\b"
+        r"(?:application|interface|site|api|programme|outil|plateforme|backend|frontend)\b",
+        r"\b(?:je veux|je souhaite|je compte)\b.{0,100}\b(?:faire|creer|developper|construire|concevoir)\b"
+        r".{0,80}\b(?:projet|application|interface|site|outil|plateforme)\b",
+        r"\b(?:je veux|je souhaite|j'ai besoin d')\b.{0,60}\b"
+        r"(?:application|interface|site|outil|plateforme)\b",
+    ),
+    TaskType.WRITING: (
+        r"\b(?:redige|ecris|reformule|corrige)\w*\b.{0,60}\b"
+        r"(?:article|email|newsletter|post|texte|histoire|scenario|communique)\b",
+    ),
+    TaskType.RESEARCH: (
+        r"\b(?:recherche|trouve|compare|etudie)\w*\b.{0,80}\b"
+        r"(?:sources|etudes|informations|publications|bibliographie)\b",
+    ),
+    TaskType.DATA_ANALYSIS: (
+        r"\b(?:analyse|explore|nettoie|visualise)\w*\b.{0,80}\b"
+        r"(?:donnees|data|dataset|csv|excel|tableau|kpi|statistiques?)\b",
+    ),
+    TaskType.CYBERSECURITY: (
+        r"\b(?:audite|analyse|evalue|teste)\w*\b.{0,80}\b"
+        r"(?:securite|vulnerabilite|pentest|menace|incident|cve)\b",
+    ),
+    TaskType.LEARNING: (
+        r"\b(?:explique|enseigne|apprends-moi|cree\s+un\s+cours)\w*\b",
     ),
 }
 
@@ -83,10 +120,18 @@ def _count_markers(text: str, markers: tuple[str, ...]) -> int:
 
 def detect_task_type(prompt: str) -> TaskType:
     text = normalize(prompt)
-    scored = {
-        category: sum(2 if " " in keyword else 1 for keyword in keywords if normalize(keyword) in text)
-        for category, keywords in CATEGORY_KEYWORDS.items()
-    }
+    scored: dict[TaskType, int] = {}
+    for category, keywords in CATEGORY_KEYWORDS.items():
+        keyword_score = sum(
+            2 if " " in keyword else 1
+            for keyword in keywords
+            if normalize(keyword) in text
+        )
+        intent_score = sum(
+            8 for pattern in CATEGORY_INTENT_PATTERNS.get(category, ()) if re.search(pattern, text)
+        )
+        scored[category] = keyword_score + intent_score
+
     best_category, best_score = max(scored.items(), key=lambda item: item[1])
     return best_category if best_score > 0 else TaskType.GENERAL
 
@@ -132,4 +177,3 @@ def analyze_prompt(prompt: str) -> PromptAnalysis:
     missing_information = [question for condition, _, question in checks if condition][:5]
 
     return PromptAnalysis(task_type, score, breakdown, weaknesses, missing_information)
-

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.models.optimization import Optimization
-from app.services.ai_provider import OpenAIProvider
+from app.services.ai_provider import OllamaProvider, OpenAIProvider
 from app.services.local_optimizer import optimize_locally
 from app.services.prompt_analyzer import analyze_prompt
 
@@ -17,7 +17,15 @@ def create_optimization(db: Session, prompt: str) -> Optimization:
     provider = "local"
     model: str | None = None
 
-    if settings.openai_enabled:
+    if settings.ollama_enabled:
+        try:
+            ai_provider = OllamaProvider(settings)
+            payload = ai_provider.optimize(prompt, original_analysis)
+            provider = "ollama"
+            model = settings.ollama_model
+        except Exception:
+            logger.exception("Ollama optimization failed; using the local engine")
+    elif settings.openai_enabled:
         try:
             ai_provider = OpenAIProvider(settings)
             payload = ai_provider.optimize(prompt, original_analysis)
@@ -28,6 +36,8 @@ def create_optimization(db: Session, prompt: str) -> Optimization:
 
     optimized_analysis = analyze_prompt(payload.optimized_prompt)
     optimized_score = min(100, max(optimized_analysis.score, original_analysis.score + 15))
+    if provider == "local":
+        optimized_score = max(original_analysis.score, min(82, optimized_score))
 
     record = Optimization(
         original_prompt=prompt.strip(),
@@ -46,4 +56,3 @@ def create_optimization(db: Session, prompt: str) -> Optimization:
     db.commit()
     db.refresh(record)
     return record
-

@@ -128,9 +128,17 @@ function ResultPanel({ result }: { result: Optimization }) {
           )}
         </article>
       </div>
-      <p className="provider-note">
-        Optimisation par {result.provider === "openai" ? result.model ?? "OpenAI" : "le moteur local"}
-      </p>
+      {result.provider === "local" ? (
+        <div className="local-mode-note">
+          <strong>Mode local</strong>
+          <span>Le modèle IA local était indisponible. Vérifiez qu’Ollama est lancé ; OpenAI reste également disponible en option.</span>
+        </div>
+      ) : (
+        <p className="provider-note">
+          Optimisation par {result.provider === "ollama" ? "Ollama local" : "OpenAI"}
+          {result.model ? ` · ${result.model}` : ""}
+        </p>
+      )}
     </section>
   );
 }

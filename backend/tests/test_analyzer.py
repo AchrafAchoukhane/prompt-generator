@@ -28,7 +28,27 @@ def test_local_optimizer_is_category_aware_and_improves_score() -> None:
     optimized = analyze_prompt(result.optimized_prompt)
 
     assert analysis.task_type == TaskType.IMAGE_GENERATION
-    assert "Composition et cadrage" in result.optimized_prompt
-    assert "Éléments à éviter" in result.optimized_prompt
+    assert "directeur artistique" in result.optimized_prompt
+    assert "prompt visuel final" in result.optimized_prompt
+    assert "[À préciser" not in result.optimized_prompt
     assert optimized.score > analysis.score
 
+
+def test_product_request_is_not_misclassified_from_an_example_image_mention() -> None:
+    original = (
+        "Je compte faire un projet de prompt generator parce que j'utilise souvent l'IA. "
+        "Je veux une interface où écrire un prompt naturel, voir le nouveau prompt amélioré "
+        "et les points améliorés. Ces prompts peuvent servir à générer une image ou autre chose."
+    )
+
+    analysis = analyze_prompt(original)
+    result = optimize_locally(original, analysis)
+
+    assert analysis.task_type == TaskType.CODE_GENERATION
+    assert "architecte logiciel" in result.optimized_prompt
+    assert "application web appelée « Prompt Generator »" in result.optimized_prompt
+    assert "saisir un prompt en langage naturel" in result.optimized_prompt
+    assert "Architecture proposée" in result.optimized_prompt
+    assert "Direction artistique" not in result.optimized_prompt
+    assert "Je compte faire un projet" not in result.optimized_prompt
+    assert "[À préciser" not in result.optimized_prompt

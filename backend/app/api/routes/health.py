@@ -20,6 +20,5 @@ def health(db: Session = Depends(get_db)) -> HealthRead:
         status="ok" if database_status == "connected" else "degraded",
         database=database_status,
         ai_provider=settings.ai_provider,
-        ai_configured=settings.openai_enabled,
+        ai_configured=settings.ai_configured,
     )
-

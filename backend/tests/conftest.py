@@ -2,6 +2,7 @@ import os
 
 os.environ["DATABASE_URL"] = "sqlite://"
 os.environ["AUTO_CREATE_TABLES"] = "false"
+os.environ["AI_PROVIDER"] = "local"
 os.environ.pop("OPENAI_API_KEY", None)
 
 import pytest
@@ -42,4 +43,3 @@ def client():
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
-

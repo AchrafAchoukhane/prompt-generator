@@ -63,4 +63,3 @@ class HealthRead(BaseModel):
     database: str
     ai_provider: str
     ai_configured: bool
-
